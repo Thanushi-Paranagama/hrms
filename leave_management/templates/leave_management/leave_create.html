@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Request Leave - Smart HR System{% endblock %}
+{% block page_title %}Request Leave{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'leave_request_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-calendar-plus"></i> New Leave Request
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'leave_request_create' %}">
+                    {% csrf_token %}
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> Leave requests must be submitted at least 24 hours in advance. 
+                        Your request will be reviewed by HR/Admin.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="leave_type_id" class="form-label">
+                            Leave Type <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="leave_type_id" name="leave_type_id" required>
+                            <option value="">Select Leave Type</option>
+                            {% for leave_type in leave_types %}
+                            <option value="{{ leave_type.id }}" 
+                                    data-max-days="{{ leave_type.max_days_per_year }}"
+                                    data-is-paid="{{ leave_type.is_paid }}">
+                                {{ leave_type.name }}
+                                {% if leave_type.is_paid %}(Paid){% else %}(Unpaid){% endif %}
+                                - Max {{ leave_type.max_days_per_year }} days/year
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text" id="leaveTypeHelp"></div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">
+                                Start Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" 
+                                   min="{{ today|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">
+                                End Date <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" 
+                                   min="{{ today|date:'Y-m-d' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="alert alert-secondary" id="daysCalculation">
+                            <i class="fas fa-calculator"></i>
+                            <strong>Total Days:</strong> <span id="totalDays">0</span> day(s)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">
+                            Reason <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" id="reason" name="reason" rows="4" 
+                                  placeholder="Please provide a detailed reason for your leave request..." 
+                                  required></textarea>
+                        <div class="form-text">Minimum 20 characters</div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'leave_request_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Your Leave Balance (placeholder) -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-chart-pie"></i> Your Leave Balance
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    {% for leave_type in leave_types %}
+                    <div class="col-md-4 mb-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted">{{ leave_type.name }}</h6>
+                            <h3 class="mb-0">{{ leave_type.max_days_per_year }}</h3>
+                            <small class="text-muted">days available</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Calculate days between dates
+    function calculateDays() {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const diffTime = end - start;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            if (diffDays > 0) {
+                document.getElementById('totalDays').textContent = diffDays;
+                document.getElementById('daysCalculation').className = 'alert alert-success';
+            } else {
+                document.getElementById('totalDays').textContent = '0';
+                document.getElementById('daysCalculation').className = 'alert alert-danger';
+                alert('End date must be after start date!');
+            }
+        }
+    }
+    
+    document.getElementById('start_date').addEventListener('change', calculateDays);
+    document.getElementById('end_date').addEventListener('change', calculateDays);
+    
+    // Show leave type information
+    document.getElementById('leave_type_id').addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const maxDays = selected.getAttribute('data-max-days');
+        const isPaid = selected.getAttribute('data-is-paid') === 'True';
+        
+        if (selected.value) {
+            document.getElementById('leaveTypeHelp').innerHTML = 
+                `<i class="fas fa-info-circle"></i> 
+                This leave type allows maximum ${maxDays} days per year and is ${isPaid ? 'paid' : 'unpaid'}.`;
+        } else {
+            document.getElementById('leaveTypeHelp').innerHTML = '';
+        }
+    });
+    
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const reason = document.getElementById('reason').value;
+        if (reason.length < 20) {
+            e.preventDefault();
+            alert('Please provide a more detailed reason (minimum 20 characters).');
+            return false;
+        }
+        
+        const totalDays = parseInt(document.getElementById('totalDays').textContent);
+        if (totalDays <= 0) {
+            e.preventDefault();
+            alert('Please select valid dates for your leave request.');
+            return false;
+        }
+    });
+</script>
+{% endblock %}

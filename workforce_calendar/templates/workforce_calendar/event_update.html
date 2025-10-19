@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Event - Smart HR System{% endblock %}
+{% block page_title %}Edit Event{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Event
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-edit"></i> Edit Event: {{ event.title }}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Event Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ event.title }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3">{{ event.description }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="event_type" class="form-label">Event Type *</label>
+                        <select class="form-select" id="event_type" name="event_type" required>
+                            {% for value, label in event_types %}
+                            <option value="{{ value }}" {% if event.event_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="start_datetime" class="form-label">Start Date & Time *</label>
+                            <input type="datetime-local" class="form-control" id="start_datetime" name="start_datetime" 
+                                   value="{{ event.start_date|date:'Y-m-d\TH:i' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="end_datetime" class="form-label">End Date & Time *</label>
+                            <input type="datetime-local" class="form-control" id="end_datetime" name="end_datetime" 
+                                   value="{{ event.end_date|date:'Y-m-d\TH:i' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="all_day" name="all_day" 
+                               {% if event.is_all_day %}checked{% endif %}>
+                        <label class="form-check-label" for="all_day">
+                            All Day Event
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location" name="location" 
+                               value="{{ event.location }}" placeholder="Meeting room, venue, etc.">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="participants" class="form-label">Participants</label>
+                        <select class="form-select" id="participants" name="participants" multiple size="5">
+                            {% for emp in employees %}
+                            <option value="{{ emp.id }}" 
+                                    {% if emp in event.employees.all %}selected{% endif %}>
+                                {{ emp.user.get_full_name }} ({{ emp.employee_id }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Hold Ctrl/Cmd to select multiple employees</small>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i> Update Event
+                        </button>
+                        <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

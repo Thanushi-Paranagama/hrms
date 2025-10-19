@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.title }} - Smart HR System{% endblock %}
+{% block page_title %}Event Details{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'calendar_view' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Calendar
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="fas fa-calendar-day"></i> {{ event.title }}
+                </span>
+                <div class="btn-group btn-group-sm">
+                    <a href="{% url 'event_update' event.id %}" class="btn btn-light">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{% url 'event_delete' event.id %}" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-tag text-primary"></i> Event Type</h6>
+                        <p>
+                            <span class="badge bg-{{ event.event_type|lower }} fs-6">{{ event.get_event_type_display }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-clock text-primary"></i> Duration</h6>
+                        <p>
+                            {% if event.is_all_day %}
+                                <span class="badge bg-info">All Day Event</span>
+                            {% else %}
+                                {{ event.start_date|date:"H:i" }} - {{ event.end_date|date:"H:i" }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-calendar text-primary"></i> Date & Time</h6>
+                    <p>
+                        <strong>Start:</strong> {{ event.start_date|date:"l, F d, Y - H:i" }}<br>
+                        <strong>End:</strong> {{ event.end_date|date:"l, F d, Y - H:i" }}
+                    </p>
+                </div>
+                
+                {% if event.location %}
+                <div class="mb-3">
+                    <h6><i class="fas fa-map-marker-alt text-primary"></i> Location</h6>
+                    <p>{{ event.location }}</p>
+                </div>
+                {% endif %}
+                
+                {% if event.description %}
+                <div class="mb-3">
+                    <h6><i class="fas fa-align-left text-primary"></i> Description</h6>
+                    <p>{{ event.description }}</p>
+                </div>
+                {% endif %}
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-users text-primary"></i> Participants ({{ event.employees.count }})</h6>
+                    {% if event.employees.exists %}
+                    <div class="list-group">
+                        {% for employee in event.employees.all %}
+                        <div class="list-group-item">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 40px; height: 40px;">
+                                    {{ employee.user.first_name.0 }}{{ employee.user.last_name.0 }}
+                                </div>
+                                <div>
+                                    <strong>{{ employee.user.get_full_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ employee.employee_id }} - {{ employee.department.name }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No participants assigned</p>
+                    {% endif %}
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-user text-primary"></i> Created By</h6>
+                    <p>
+                        {% if event.created_by %}
+                            {{ event.created_by.user.get_full_name }}
+                            <small class="text-muted">on {{ event.created_at|date:"M d, Y" }}</small>
+                        {% else %}
+                            <span class="text-muted">System</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .badge.bg-meeting { background-color: #0d6efd !important; }
+    .badge.bg-deadline { background-color: #dc3545 !important; }
+    .badge.bg-event { background-color: #6c757d !important; }
+    .badge.bg-holiday { background-color: #198754 !important; }
+    .badge.bg-training { background-color: #0dcaf0 !important; }
+</style>
+{% endblock %}

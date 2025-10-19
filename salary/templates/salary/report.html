@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}Salary Report - {{ employee.user.get_full_name }} - Smart HR System{% endblock %}
+{% block page_title %}Salary Report{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'salary_dashboard' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<!-- Employee Header -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    <div class="avatar-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                         style="width: 60px; height: 60px; font-size: 24px;">
+                        {{ employee.user.first_name.0 }}{{ employee.user.last_name.0 }}
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ employee.user.get_full_name }}</h4>
+                        <p class="mb-0 text-muted">
+                            {{ employee.employee_id }} | 
+                            {% if employee.department %}{{ employee.department.name }}{% else %}No Department{% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <h5 class="mb-0">
+                    {% if month == 1 %}January{% elif month == 2 %}February{% elif month == 3 %}March{% elif month == 4 %}April{% elif month == 5 %}May{% elif month == 6 %}June{% elif month == 7 %}July{% elif month == 8 %}August{% elif month == 9 %}September{% elif month == 10 %}October{% elif month == 11 %}November{% else %}December{% endif %}
+                    {{ year }}
+                </h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if salary_record %}
+<!-- Salary Slip -->
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-file-invoice-dollar"></i> Salary Slip</span>
+                    <button class="btn btn-sm btn-light" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Company Header -->
+                <div class="text-center mb-4">
+                    <h3>Smart HR System</h3>
+                    <p class="text-muted mb-0">Monthly Salary Statement</p>
+                </div>
+                
+                <hr>
+                
+                <!-- Employee Details -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p><strong>Employee Name:</strong> {{ employee.user.get_full_name }}</p>
+                        <p><strong>Employee ID:</strong> {{ employee.employee_id }}</p>
+                        <p><strong>Department:</strong> {{ employee.department.name|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Period:</strong> {{ month }}/{{ year }}</p>
+                        <p><strong>Payment Date:</strong> {{ salary_record.payment_date|date:"M d, Y"|default:"Not Paid" }}</p>
+                        <p><strong>Status:</strong>
+                            {% if salary_record.is_paid %}
+                                <span class="badge bg-success">Paid</span>
+                            {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Earnings & Deductions -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="text-success mb-3">Earnings</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Base Salary</td>
+                                <td class="text-end"><strong>Rs. {{ salary_record.base_salary|floatformat:2 }}</strong></td>
+                            </tr>
+                            {% if salary_record.bonuses > 0 %}
+                            <tr>
+                                <td>Bonuses</td>
+                                <td class="text-end text-success"><strong>Rs. {{ salary_record.bonuses|floatformat:2 }}</strong></td>
+                            </tr>
+                            {% endif %}
+                            <tr class="table-light">
+                                <td><strong>Gross Salary</strong></td>
+                                <td class="text-end"><strong>Rs. {% widthratio salary_record.base_salary 1 1|add:salary_record.bonuses|floatformat:2 %}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="text-danger mb-3">Deductions</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>Absence Deductions</td>
+                                <td class="text-end text-danger"><strong>Rs. {{ salary_record.deductions|floatformat:2 }}</strong></td>
+                            </tr>
+                            <tr class="table-light">
+                                <td><strong>Total Deductions</strong></td>
+                                <td class="text-end"><strong>Rs. {{ salary_record.deductions|floatformat:2 }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Attendance Summary -->
+                <div class="mb-4">
+                    <h5 class="mb-3">Attendance Summary</h5>
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-success mb-0">{{ salary_record.days_worked }}</h4>
+                                <small class="text-muted">Days Worked</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-danger mb-0">{{ salary_record.days_absent }}</h4>
+                                <small class="text-muted">Days Absent</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="text-info mb-0">{{ salary_record.days_leave }}</h4>
+                                <small class="text-muted">Leave Days (Paid)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3">
+                                <h4 class="mb-0">{% widthratio salary_record.days_worked salary_record.days_worked|add:salary_record.days_absent 100 %}%</h4>
+                                <small class="text-muted">Attendance %</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Net Salary -->
+                <div class="alert alert-success text-center">
+                    <h6 class="mb-2">NET SALARY</h6>
+                    <h2 class="mb-0">Rs. {{ salary_record.total_salary|floatformat:2 }}</h2>
+                </div>
+                
+                {% if salary_record.notes %}
+                <div class="alert alert-light">
+                    <strong>Notes:</strong> {{ salary_record.notes }}
+                </div>
+                {% endif %}
+                
+                <div class="text-center text-muted mt-4">
+                    <small>This is a computer-generated document. No signature required.</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Attendance -->
+        {% if attendances %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-calendar-check"></i> Detailed Attendance
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Day</th>
+                                <th>Check-In</th>
+                                <th>Check-Out</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for att in attendances %}
+                            <tr>
+                                <td>{{ att.date|date:"M d" }}</td>
+                                <td>{{ att.date|date:"l" }}</td>
+                                <td>{{ att.check_in|time:"H:i"|default:"-" }}</td>
+                                <td>{{ att.check_out|time:"H:i"|default:"-" }}</td>
+                                <td>
+                                    {% if att.status == 'PRESENT' %}
+                                        <span class="badge bg-success">Present</span>
+                                    {% elif att.status == 'ABSENT' %}
+                                        <span class="badge bg-danger">Absent</span>
+                                    {% elif att.status == 'LATE' %}
+                                        <span class="badge bg-warning">Late</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ att.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<!-- No Record Found -->
+<div class="text-center py-5">
+    <i class="fas fa-file-invoice-dollar fa-5x text-muted mb-4"></i>
+    <h3>No Salary Record Found</h3>
+    <p class="text-muted">No salary record exists for this employee for the selected period.</p>
+    <a href="{% url 'salary_generate' %}" class="btn btn-primary mt-3">
+        <i class="fas fa-calculator"></i> Generate Salary
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .sidebar, .topbar, .btn, .alert {
+            display: none !important;
+        }
+        .content-wrapper {
+            margin: 0 !important;
+        }
+        .card {
+            border: none;
+            box-shadow: none;
+        }
+    }
+</style>
+{% endblock %}

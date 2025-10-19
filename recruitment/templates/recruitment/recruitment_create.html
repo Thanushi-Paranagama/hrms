@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Candidate - Smart HR System{% endblock %}
+{% block page_title %}Add New Candidate{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'recruitment_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-user-plus"></i> Candidate Information
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <h5 class="text-primary mb-3">Personal Information</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone_number" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" required>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5 class="text-primary mb-3">Position Details</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="position_applied" class="form-label">Position Applied <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="position_applied" name="position_applied" 
+                                   placeholder="e.g., Software Engineer" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="department_id" class="form-label">Department <span class="text-danger">*</span></label>
+                            <select class="form-select" id="department_id" name="department_id" required>
+                                <option value="">Select Department</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="resume" class="form-label">Resume/CV</label>
+                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx">
+                        <div class="form-text">Accepted formats: PDF, DOC, DOCX (Max 5MB)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cover_letter" class="form-label">Cover Letter</label>
+                        <textarea class="form-control" id="cover_letter" name="cover_letter" rows="5"
+                                  placeholder="Optional: Candidate's cover letter..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Internal Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"
+                                  placeholder="Internal notes about the candidate..."></textarea>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'recruitment_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Add Candidate
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

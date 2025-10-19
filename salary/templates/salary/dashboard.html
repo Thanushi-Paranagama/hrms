@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}Salary Dashboard - Smart HR System{% endblock %}
+{% block page_title %}Salary Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-heading mb-0">
+            <i class="fas fa-money-bill-wave text-primary"></i> Salary Dashboard
+        </h2>
+        <p class="text-muted">{{ month|date:"F" }} {{ year }} Payroll</p>
+    </div>
+    <a href="{% url 'salary_generate' %}" class="btn btn-primary">
+        <i class="fas fa-calculator"></i> Generate Salary
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase mb-1">Total Payroll</div>
+                        <div class="h4 mb-0 font-weight-bold">Rs. {{ total_payroll|floatformat:2 }}</div>
+                    </div>
+                    <div class="text-primary" style="font-size: 2rem;">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase mb-1">Employees Paid</div>
+                        <div class="h4 mb-0 font-weight-bold">{{ total_employees }}</div>
+                    </div>
+                    <div class="text-success" style="font-size: 2rem;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase mb-1">Total Deductions</div>
+                        <div class="h4 mb-0 font-weight-bold">Rs. {{ total_deductions|floatformat:2 }}</div>
+                    </div>
+                    <div class="text-danger" style="font-size: 2rem;">
+                        <i class="fas fa-minus-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="card stat-card warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small text-uppercase mb-1">Average Salary</div>
+                        <div class="h4 mb-0 font-weight-bold">
+                            Rs. {% if total_employees > 0 %}{% widthratio total_payroll total_employees 1 %}{% else %}0{% endif %}
+                        </div>
+                    </div>
+                    <div class="text-warning" style="font-size: 2rem;">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Salary Records Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-table me-2"></i>Salary Records - {{ month|date:"F" }} {{ year }}</span>
+        <div>
+            <button class="btn btn-sm btn-outline-success" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i> Export
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="salaryTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Employee ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Base Salary</th>
+                        <th>Bonuses</th>
+                        <th>Deductions</th>
+                        <th>Total Salary</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in salary_records %}
+                    <tr>
+                        <td><strong>{{ record.employee.employee_id }}</strong></td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                     style="width: 35px; height: 35px; font-size: 14px;">
+                                    {{ record.employee.user.first_name.0 }}{{ record.employee.user.last_name.0 }}
+                                </div>
+                                <div>{{ record.employee.user.get_full_name }}</div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if record.employee.department %}
+                                <span class="badge bg-info">{{ record.employee.department.name }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>Rs. {{ record.base_salary|floatformat:2 }}</td>
+                        <td>
+                            {% if record.bonuses > 0 %}
+                                <span class="text-success">+Rs. {{ record.bonuses|floatformat:2 }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.deductions > 0 %}
+                                <span class="text-danger">-Rs. {{ record.deductions|floatformat:2 }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td><strong class="text-success">Rs. {{ record.total_salary|floatformat:2 }}</strong></td>
+                        <td>
+                            {% if record.is_paid %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> Paid
+                                </span>
+                                <br>
+                                <small class="text-muted">{{ record.payment_date|date:"M d" }}</small>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock"></i> Pending
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'salary_report' record.employee.employee_id %}?month={{ month }}&year={{ year }}" 
+                               class="btn btn-sm btn-outline-primary" 
+                               title="View Report">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                            </a>
+                            {% if not record.is_paid %}
+                                <form method="POST" action="{% url 'salary_mark_paid' record.id %}" 
+                                      style="display: inline;" 
+                                      onsubmit="return confirm('Mark this salary as paid?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Mark as Paid">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            No salary records for this period<br>
+                            <a href="{% url 'salary_generate' %}" class="btn btn-primary mt-3">
+                                <i class="fas fa-calculator"></i> Generate Salary Records
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function exportToExcel() {
+        const table = document.getElementById('salaryTable');
+        let csv = [];
+        const rows = table.querySelectorAll('tr');
+        
+        for (let row of rows) {
+            const cols = row.querySelectorAll('td, th');
+            const csvRow = [];
+            for (let col of cols) {
+                csvRow.push(col.innerText.replace(/,/g, ''));
+            }
+            csv.push(csvRow.join(','));
+        }
+        
+        const csvContent = csv.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'salary_report_{{ month }}_{{ year }}.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+</script>
+{% endblock %}

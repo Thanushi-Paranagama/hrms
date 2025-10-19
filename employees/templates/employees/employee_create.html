@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}Add New Employee - Smart HR System{% endblock %}
+{% block page_title %}Add New Employee{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-user-plus"></i> Employee Information Form
+            </div>
+            <div class="card-body">
+                <form id="employeeForm" method="POST">
+                    {% csrf_token %}
+                    
+                    <!-- User Information -->
+                    <h5 class="text-primary mb-3">
+                        <i class="fas fa-user"></i> User Account
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">Minimum 8 characters</div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Employee Information -->
+                    <h5 class="text-primary mb-3">
+                        <i class="fas fa-id-card"></i> Employee Details
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="employee_id" class="form-label">Employee ID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="employee_id" name="employee_id" required>
+                            <div class="form-text">e.g., EMP0001</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="department_id" class="form-label">Department <span class="text-danger">*</span></label>
+                            <select class="form-select" id="department_id" name="department_id" required>
+                                <option value="">Select Department</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="EMPLOYEE">Employee</option>
+                                <option value="TECHNICIAN">Technician</option>
+                                <option value="HR">HR Team</option>
+                                <option value="ADMIN">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="date_of_birth" class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Contact Information -->
+                    <h5 class="text-primary mb-3">
+                        <i class="fas fa-address-book"></i> Contact Information
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="phone_number" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                   placeholder="+94771234567">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="emergency_contact" class="form-label">Emergency Contact</label>
+                            <input type="tel" class="form-control" id="emergency_contact" name="emergency_contact">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Work Location -->
+                    <h5 class="text-primary mb-3">
+                        <i class="fas fa-building"></i> Work Location
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="floor_number" class="form-label">Floor Number</label>
+                            <input type="number" class="form-control" id="floor_number" name="floor_number" min="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cabin_number" class="form-label">Cabin Number</label>
+                            <input type="text" class="form-control" id="cabin_number" name="cabin_number">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="salary_base" class="form-label">Base Salary (Rs.)</label>
+                            <input type="number" class="form-control" id="salary_base" name="salary_base" 
+                                   step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Employee
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('employeeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            password: document.getElementById('password').value,
+            employee_id: document.getElementById('employee_id').value,
+            department_id: document.getElementById('department_id').value,
+            role: document.getElementById('role').value,
+            date_of_birth: document.getElementById('date_of_birth').value,
+            phone_number: document.getElementById('phone_number').value,
+            address: document.getElementById('address').value,
+            floor_number: document.getElementById('floor_number').value,
+            cabin_number: document.getElementById('cabin_number').value,
+            salary_base: document.getElementById('salary_base').value
+        };
+        
+        fetch('{% url "employee_create" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Employee created successfully!');
+                window.location.href = '{% url "employee_list" %}';
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    });
+</script>
+{% endblock %}

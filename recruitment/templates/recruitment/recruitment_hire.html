@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Hire Candidate - Smart HR System{% endblock %}
+{% block page_title %}Hire Candidate{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'recruitment_detail' recruitment.id %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Details
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <!-- Candidate Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-user-check"></i> Hire Candidate
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>{{ recruitment.first_name }} {{ recruitment.last_name }}</h5>
+                        <p class="mb-1"><i class="fas fa-envelope text-primary me-2"></i>{{ recruitment.email }}</p>
+                        <p class="mb-0"><i class="fas fa-phone text-success me-2"></i>{{ recruitment.phone_number }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Position:</strong> {{ recruitment.position_applied }}</p>
+                        <p><strong>Department:</strong> {{ recruitment.department.name }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Employee Setup Form -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-id-card"></i> Employee Setup
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Automated Onboarding:</strong> An employee account will be created automatically, 
+                        and login credentials will be emailed to the candidate.
+                    </div>
+                    
+                    <h5 class="text-primary mb-3">Work Assignment</h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="role" class="form-label">Employee Role <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="EMPLOYEE" selected>Employee</option>
+                                <option value="TECHNICIAN">Technician</option>
+                                <option value="HR">HR Team</option>
+                                <option value="ADMIN">Admin</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="salary_base" class="form-label">Base Salary (Rs.) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="salary_base" name="salary_base" 
+                                   min="0" step="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="floor_number" class="form-label">Floor Number</label>
+                            <input type="number" class="form-control" id="floor_number" name="floor_number" min="1">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="cabin_number" class="form-label">Cabin Number</label>
+                            <input type="text" class="form-control" id="cabin_number" name="cabin_number">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h5 class="text-primary mb-3">Network Access</h5>
+                    
+                    <div class="mb-3">
+                        <label for="wifi_password" class="form-label">WiFi Password</label>
+                        <input type="text" class="form-control" id="wifi_password" name="wifi_password" 
+                               placeholder="Will be included in onboarding email">
+                        <div class="form-text">Leave blank to use default or "Contact IT Department"</div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Important:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Employee ID will be auto-generated (e.g., EMP0001)</li>
+                            <li>Login credentials will be sent to <strong>{{ recruitment.email }}</strong></li>
+                            <li>Username will be generated from candidate's name</li>
+                            <li>A random temporary password will be created</li>
+                        </ul>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'recruitment_detail' recruitment.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to hire this candidate? An onboarding email will be sent.');">
+                            <i class="fas fa-user-check"></i> Hire & Send Onboarding Email
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}My Calendar - Smart HR System{% endblock %}
+{% block page_title %}My Calendar{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-heading mb-0">
+            <i class="fas fa-user-calendar text-primary"></i> My Calendar
+        </h2>
+        <p class="text-muted">{{ employee.user.get_full_name }} - {{ employee.employee_id }}</p>
+    </div>
+    <a href="{% url 'calendar_view' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-calendar-alt"></i> All Events
+    </a>
+</div>
+
+<!-- Personal Stats -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card primary text-center">
+            <div class="card-body">
+                <h3 class="display-6 text-primary">{{ events.count }}</h3>
+                <p class="text-muted mb-0">Upcoming Events</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card success text-center">
+            <div class="card-body">
+                <h3 class="display-6 text-success">{{ leave_requests.count }}</h3>
+                <p class="text-muted mb-0">Leave Requests</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card info text-center">
+            <div class="card-body">
+                <h3 class="display-6 text-info">{{ start_date|date:"F Y" }}</h3>
+                <p class="text-muted mb-0">Current Month</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Events -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-calendar-check me-2"></i>My Events This Month
+            </div>
+            <div class="card-body">
+                {% if events %}
+                <div class="list-group list-group-flush">
+                    {% for event in events %}
+                    <a href="{% url 'event_detail' event.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">
+                                    {% if event.event_type == 'MEETING' %}
+                                        <i class="fas fa-users text-primary"></i>
+                                    {% elif event.event_type == 'DEADLINE' %}
+                                        <i class="fas fa-exclamation-triangle text-danger"></i>
+                                    {% elif event.event_type == 'HOLIDAY' %}
+                                        <i class="fas fa-umbrella-beach text-success"></i>
+                                    {% elif event.event_type == 'TRAINING' %}
+                                        <i class="fas fa-graduation-cap text-info"></i>
+                                    {% endif %}
+                                    {{ event.title }}
+                                </h6>
+                                <p class="mb-1 small text-muted">
+                                    {{ event.start_date|date:"M d, Y - H:i" }}
+                                </p>
+                            </div>
+                            <span class="badge bg-primary">{{ event.get_event_type_display }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-calendar-times fa-3x mb-3 d-block"></i>
+                    No events this month
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-plane-departure me-2"></i>My Leave Requests
+            </div>
+            <div class="card-body">
+                {% if leave_requests %}
+                <div class="list-group list-group-flush">
+                    {% for leave in leave_requests %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ leave.leave_type.name }}</h6>
+                                <p class="mb-1 small text-muted">
+                                    {{ leave.start_date|date:"M d" }} - {{ leave.end_date|date:"M d, Y" }}
+                                    ({{ leave.days_requested }} days)
+                                </p>
+                            </div>
+                            {% if leave.status == 'PENDING' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elif leave.status == 'APPROVED' %}
+                                <span class="badge bg-success">Approved</span>
+                            {% elif leave.status == 'REJECTED' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ leave.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-clipboard-list fa-3x mb-3 d-block"></i>
+                    No leave requests this month
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance Report - {{ employee.user.get_full_name }} - Smart HR System{% endblock %}
+{% block page_title %}Attendance Report{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-heading mb-0">
+            <i class="fas fa-file-alt text-primary"></i> Attendance Report
+        </h2>
+        <p class="text-muted">{{ employee.user.get_full_name }} - {{ month }}/{{ year }}</p>
+    </div>
+    <div class="btn-group">
+        <button onclick="window.print()" class="btn btn-outline-primary">
+            <i class="fas fa-print"></i> Print
+        </button>
+        <a href="{% url 'attendance_dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- Employee Info Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="avatar-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" 
+                     style="width: 100px; height: 100px; font-size: 36px;">
+                    {{ employee.user.first_name.0 }}{{ employee.user.last_name.0 }}
+                </div>
+            </div>
+            <div class="col-md-9">
+                <h4>{{ employee.user.get_full_name }}</h4>
+                <p class="mb-1"><strong>Employee ID:</strong> {{ employee.employee_id }}</p>
+                <p class="mb-1"><strong>Department:</strong> 
+                    {% if employee.department %}
+                        {{ employee.department.name }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </p>
+                <p class="mb-1"><strong>Email:</strong> {{ employee.user.email }}</p>
+                <p class="mb-0"><strong>Phone:</strong> {{ employee.phone_number|default:"-" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card success text-center">
+            <div class="card-body">
+                <h2 class="display-4 text-success">{{ total_present }}</h2>
+                <p class="text-muted mb-0">Days Present</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card danger text-center">
+            <div class="card-body">
+                <h2 class="display-4 text-danger">{{ total_absent }}</h2>
+                <p class="text-muted mb-0">Days Absent</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card warning text-center">
+            <div class="card-body">
+                <h2 class="display-4 text-warning">{{ total_late }}</h2>
+                <p class="text-muted mb-0">Days Late</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card info text-center">
+            <div class="card-body">
+                <h2 class="display-4 text-info">{{ total_half_day }}</h2>
+                <p class="text-muted mb-0">Half Days</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Attendance Table -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-calendar-alt me-2"></i>Detailed Attendance Records
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Day</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Hours Worked</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attendance in attendances %}
+                    <tr>
+                        <td>{{ attendance.date|date:"M d, Y" }}</td>
+                        <td>{{ attendance.date|date:"l" }}</td>
+                        <td>
+                            {% if attendance.check_in %}
+                                <i class="fas fa-clock text-success"></i> {{ attendance.check_in|date:"H:i" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.check_out %}
+                                <i class="fas fa-clock text-danger"></i> {{ attendance.check_out|date:"H:i" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.check_in and attendance.check_out %}
+                                {{ attendance.get_hours_worked|floatformat:2 }} hrs
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.status == 'PRESENT' %}
+                                <span class="badge bg-success">Present</span>
+                            {% elif attendance.status == 'ABSENT' %}
+                                <span class="badge bg-danger">Absent</span>
+                            {% elif attendance.status == 'LATE' %}
+                                <span class="badge bg-warning">Late</span>
+                            {% elif attendance.status == 'HALF_DAY' %}
+                                <span class="badge bg-info">Half Day</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ attendance.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.notes %}
+                                <i class="fas fa-sticky-note text-info" title="{{ attendance.notes }}"></i>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-times fa-3x mb-3 d-block"></i>
+                            No attendance records found for this period
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Month Selector -->
+<div class="card mt-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-5">
+                <label for="month" class="form-label">Month</label>
+                <select name="month" id="month" class="form-select">
+                    {% for m in "123456789101112"|make_list %}
+                        <option value="{{ m }}" {% if m|add:"0" == month %}selected{% endif %}>
+                            {{ m|date:"F" }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="year" class="form-label">Year</label>
+                <select name="year" id="year" class="form-select">
+                    {% for y in "2023,2024,2025,2026"|split:"," %}
+                        <option value="{{ y }}" {% if y|add:"0" == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .btn, .card:last-child {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

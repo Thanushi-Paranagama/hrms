@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Recruitment - Smart HR System{% endblock %}
+{% block page_title %}Recruitment{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="page-heading mb-0">
+            <i class="fas fa-user-plus text-primary"></i> Recruitment Pipeline
+        </h2>
+        <p class="text-muted">Manage job applications and hiring process</p>
+    </div>
+    <a href="{% url 'recruitment_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Candidate
+    </a>
+</div>
+
+<!-- Status Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="btn-group" role="group">
+            <a href="?" class="btn btn-outline-secondary">
+                <i class="fas fa-list"></i> All
+            </a>
+            {% for status_code, status_label in status_choices %}
+            <a href="?status={{ status_code }}" class="btn btn-outline-secondary">
+                {{ status_label }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Recruitment List -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-users"></i> Candidates
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Position</th>
+                        <th>Department</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th>Interview Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recruitment in recruitments %}
+                    <tr>
+                        <td>
+                            <div>
+                                <strong>{{ recruitment.first_name }} {{ recruitment.last_name }}</strong>
+                                <br>
+                                <small class="text-muted">Applied: {{ recruitment.created_at|date:"M d, Y" }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ recruitment.position_applied }}</span>
+                        </td>
+                        <td>
+                            {% if recruitment.department %}
+                                {{ recruitment.department.name }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>
+                                <small>
+                                    <i class="fas fa-envelope text-primary"></i> {{ recruitment.email }}<br>
+                                    <i class="fas fa-phone text-success"></i> {{ recruitment.phone_number }}
+                                </small>
+                            </div>
+                        </td>
+                        <td>
+                            {% if recruitment.status == 'APPLIED' %}
+                                <span class="badge bg-info">Applied</span>
+                            {% elif recruitment.status == 'SCREENING' %}
+                                <span class="badge bg-warning">Screening</span>
+                            {% elif recruitment.status == 'INTERVIEW' %}
+                                <span class="badge bg-primary">Interview</span>
+                            {% elif recruitment.status == 'OFFERED' %}
+                                <span class="badge bg-success">Offered</span>
+                            {% elif recruitment.status == 'HIRED' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Hired</span>
+                            {% elif recruitment.status == 'REJECTED' %}
+                                <span class="badge bg-danger">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if recruitment.interview_date %}
+                                {{ recruitment.interview_date|date:"M d, Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'recruitment_detail' recruitment.id %}" 
+                               class="btn btn-sm btn-outline-primary" 
+                               title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if recruitment.status != 'HIRED' %}
+                                <a href="{% url 'recruitment_hire' recruitment.id %}" 
+                                   class="btn btn-sm btn-outline-success" 
+                                   title="Hire">
+                                    <i class="fas fa-user-check"></i>
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            No candidates found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Generate Salary - Smart HR System{% endblock %}
+{% block page_title %}Generate Monthly Salary{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'salary_dashboard' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-6 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-calculator"></i> Generate Salary Records
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>How it works:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>System will calculate salary for all active employees</li>
+                        <li>Based on attendance and leave records for the selected month</li>
+                        <li>Absences will result in deductions (leaves are paid)</li>
+                        <li>Existing records for the same month will be updated</li>
+                    </ul>
+                </div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="month" class="form-label">
+                            Month <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select form-select-lg" id="month" name="month" required>
+                            <option value="">Select Month</option>
+                            <option value="1" {% if current_month == 1 %}selected{% endif %}>January</option>
+                            <option value="2" {% if current_month == 2 %}selected{% endif %}>February</option>
+                            <option value="3" {% if current_month == 3 %}selected{% endif %}>March</option>
+                            <option value="4" {% if current_month == 4 %}selected{% endif %}>April</option>
+                            <option value="5" {% if current_month == 5 %}selected{% endif %}>May</option>
+                            <option value="6" {% if current_month == 6 %}selected{% endif %}>June</option>
+                            <option value="7" {% if current_month == 7 %}selected{% endif %}>July</option>
+                            <option value="8" {% if current_month == 8 %}selected{% endif %}>August</option>
+                            <option value="9" {% if current_month == 9 %}selected{% endif %}>September</option>
+                            <option value="10" {% if current_month == 10 %}selected{% endif %}>October</option>
+                            <option value="11" {% if current_month == 11 %}selected{% endif %}>November</option>
+                            <option value="12" {% if current_month == 12 %}selected{% endif %}>December</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="year" class="form-label">
+                            Year <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select form-select-lg" id="year" name="year" required>
+                            <option value="">Select Year</option>
+                            {% for year_option in years %}
+                            <option value="{{ year_option }}" {% if year_option == current_year %}selected{% endif %}>
+                                {{ year_option }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Warning:</strong> This will generate or update salary records for ALL active employees. 
+                        Make sure attendance records are complete for the selected period.
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'salary_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary" 
+                                onclick="return confirm('Are you sure you want to generate salary records for all employees?');">
+                            <i class="fas fa-calculator"></i> Generate Salary
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Calculation Preview -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Salary Calculation Formula
+            </div>
+            <div class="card-body">
+                <h6>Components:</h6>
+                <ul>
+                    <li><strong>Base Salary:</strong> Employee's monthly base salary</li>
+                    <li><strong>Per Day Salary:</strong> Base Salary ÷ Days in Month</li>
+                    <li><strong>Deductions:</strong> Per Day Salary × Absent Days (not including paid leaves)</li>
+                    <li><strong>Total Salary:</strong> Base Salary - Deductions + Bonuses</li>
+                </ul>
+                
+                <div class="alert alert-light mt-3">
+                    <strong>Example:</strong><br>
+                    Base Salary: Rs. 50,000<br>
+                    Days in Month: 30<br>
+                    Absent Days: 2<br>
+                    Per Day: Rs. 1,666.67<br>
+                    Deduction: Rs. 3,333.34<br>
+                    <strong>Total: Rs. 46,666.66</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

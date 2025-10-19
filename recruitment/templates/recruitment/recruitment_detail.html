@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ recruitment.first_name }} {{ recruitment.last_name }} - Smart HR System{% endblock %}
+{% block page_title %}Candidate Details{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{% url 'recruitment_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <!-- Candidate Profile Card -->
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="avatar-circle bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 120px; height: 120px; font-size: 36px;">
+                    {{ recruitment.first_name.0 }}{{ recruitment.last_name.0 }}
+                </div>
+                
+                <h4>{{ recruitment.first_name }} {{ recruitment.last_name }}</h4>
+                <p class="text-muted">{{ recruitment.position_applied }}</p>
+                
+                {% if recruitment.status == 'HIRED' %}
+                    <span class="badge bg-success mb-3"><i class="fas fa-check"></i> Hired</span>
+                {% elif recruitment.status == 'OFFERED' %}
+                    <span class="badge bg-success mb-3">Offer Extended</span>
+                {% elif recruitment.status == 'INTERVIEW' %}
+                    <span class="badge bg-primary mb-3">Interview Stage</span>
+                {% elif recruitment.status == 'SCREENING' %}
+                    <span class="badge bg-warning mb-3">Under Screening</span>
+                {% elif recruitment.status == 'APPLIED' %}
+                    <span class="badge bg-info mb-3">Applied</span>
+                {% elif recruitment.status == 'REJECTED' %}
+                    <span class="badge bg-danger mb-3">Rejected</span>
+                {% endif %}
+                
+                <hr>
+                
+                <div class="text-start">
+                    <p><i class="fas fa-envelope text-primary me-2"></i>{{ recruitment.email }}</p>
+                    <p><i class="fas fa-phone text-success me-2"></i>{{ recruitment.phone_number }}</p>
+                    {% if recruitment.department %}
+                    <p><i class="fas fa-building text-info me-2"></i>{{ recruitment.department.name }}</p>
+                    {% endif %}
+                </div>
+                
+                {% if recruitment.status != 'HIRED' and recruitment.status != 'REJECTED' %}
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{% url 'recruitment_hire' recruitment.id %}" class="btn btn-success">
+                        <i class="fas fa-user-check"></i> Hire Candidate
+                    </a>
+                    
+                    <!-- Update Status Form -->
+                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#statusModal">
+                        <i class="fas fa-edit"></i> Update Status
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <!-- Application Details -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="fas fa-file-alt"></i> Application Details
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="small text-muted">Position Applied</label>
+                        <p><strong>{{ recruitment.position_applied }}</strong></p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="small text-muted">Department</label>
+                        <p>{{ recruitment.department.name|default:"-" }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="small text-muted">Application Date</label>
+                        <p>{{ recruitment.created_at|date:"F d, Y" }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="small text-muted">Last Updated</label>
+                        <p>{{ recruitment.updated_at|date:"F d, Y" }}</p>
+                    </div>
+                    {% if recruitment.interview_date %}
+                    <div class="col-md-12 mb-3">
+                        <label class="small text-muted">Interview Scheduled</label>
+                        <p class="text-primary">
+                            <i class="fas fa-calendar-alt"></i>
+                            <strong>{{ recruitment.interview_date|date:"l, F d, Y \a\t H:i" }}</strong>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if recruitment.resume %}
+                <div class="mb-3">
+                    <label class="small text-muted">Resume</label>
+                    <div>
+                        <a href="{{ recruitment.resume.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="fas fa-file-pdf"></i> Download Resume
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Cover Letter -->
+        {% if recruitment.cover_letter %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="fas fa-envelope-open-text"></i> Cover Letter
+            </div>
+            <div class="card-body">
+                <p>{{ recruitment.cover_letter|linebreaks }}</p>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Notes -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-sticky-note"></i> Internal Notes
+            </div>
+            <div class="card-body">
+                {% if recruitment.notes %}
+                    <p>{{ recruitment.notes|linebreaks }}</p>
+                {% else %}
+                    <p class="text-muted">No notes available</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- If Hired -->
+        {% if recruitment.employee %}
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-check-circle"></i> Hired Employee Record
+            </div>
+            <div class="card-body">
+                <p><strong>Employee ID:</strong> {{ recruitment.employee.employee_id }}</p>
+                <p><strong>Hired Date:</strong> {{ recruitment.hired_date|date:"F d, Y" }}</p>
+                <a href="{% url 'employee_detail' recruitment.employee.employee_id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-user"></i> View Employee Profile
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Update Status Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Recruitment Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'recruitment_update_status' recruitment.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="APPLIED" {% if recruitment.status == 'APPLIED' %}selected{% endif %}>Applied</option>
+                            <option value="SCREENING" {% if recruitment.status == 'SCREENING' %}selected{% endif %}>Screening</option>
+                            <option value="INTERVIEW" {% if recruitment.status == 'INTERVIEW' %}selected{% endif %}>Interview</option>
+                            <option value="OFFERED" {% if recruitment.status == 'OFFERED' %}selected{% endif %}>Offered</option>
+                            <option value="REJECTED" {% if recruitment.status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="interviewDateField" style="display: none;">
+                        <label for="interview_date" class="form-label">Interview Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="interview_date" name="interview_date">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('status').addEventListener('change', function() {
+        const interviewField = document.getElementById('interviewDateField');
+        if (this.value === 'INTERVIEW') {
+            interviewField.style.display = 'block';
+        } else {
+            interviewField.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}
