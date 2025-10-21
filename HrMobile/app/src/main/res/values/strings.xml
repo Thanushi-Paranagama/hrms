@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">HrMobile</string>
+    <string name="leave_type_prompt">Select leave type</string>
+</resources>
