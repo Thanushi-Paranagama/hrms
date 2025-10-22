@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     
     # Third party apps
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
     
     # Local apps - ADD THESE!
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     'recruitment.apps.RecruitmentConfig',
     'salary.apps.SalaryConfig',
     'workforce_calendar.apps.WorkforceCalendarConfig',
+    'api.apps.ApiConfig',
 ]
 
 MIDDLEWARE = [

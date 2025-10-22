@@ -38,6 +38,8 @@ urlpatterns = [
     path('recruitment/', include('recruitment.urls')),
     path('salary/', include('salary.urls')),
     path('calendar/', include('workforce_calendar.urls')),
+    # API endpoints
+    path('api/', include('api.urls')),
 ]
 
 if settings.DEBUG:

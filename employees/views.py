@@ -11,6 +11,9 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import Employee, Department
 import json
+from django.db import transaction
+from .forms import EmployeeCreateForm
+from .utils import generate_employee_id
 
 
 @login_required
@@ -18,9 +21,11 @@ def employee_list(request):
     """Display list of all active employees"""
     employees = Employee.objects.select_related('user', 'department').filter(is_active=True)
     total_departments = Department.objects.count()
+    departments = Department.objects.all()
     context = {
         'employees': employees,
-        'total_departments': total_departments
+        'total_departments': total_departments,
+        'departments': departments,
     }
     return render(request, 'employees/employee_list.html', context)
 
@@ -36,41 +41,58 @@ def employee_detail(request, employee_id):
 def employee_create(request):
     """Create a new employee"""
     if request.method == 'POST':
+        # Support both JSON and form-encoded submissions
+        if request.content_type == 'application/json':
+            try:
+                payload = json.loads(request.body)
+            except Exception:
+                return JsonResponse({'success': False, 'error': 'Invalid JSON payload'}, status=400)
+        else:
+            payload = request.POST.dict()
+
+        form = EmployeeCreateForm(payload)
+        if not form.is_valid():
+            # Return structured errors for frontend display
+            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+        # All validation passed — create records atomically
         try:
-            data = json.loads(request.body)
-            
-            # Create User
-            user = User.objects.create_user(
-                username=data['username'],
-                email=data['email'],
-                password=data['password'],
-                first_name=data['first_name'],
-                last_name=data['last_name']
-            )
-            
-            # Create Employee
-            department = Department.objects.get(id=data['department_id'])
-            employee = Employee.objects.create(
-                user=user,
-                employee_id=data['employee_id'],
-                department=department,
-                role=data.get('role', 'EMPLOYEE'),
-                date_of_birth=data.get('date_of_birth'),
-                phone_number=data.get('phone_number', ''),
-                address=data.get('address', ''),
-                floor_number=data.get('floor_number'),
-                cabin_number=data.get('cabin_number', ''),
-                salary_base=data.get('salary_base', 0)
-            )
-            
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=form.cleaned_data['username'],
+                    email=form.cleaned_data['email'],
+                    password=form.cleaned_data['password'],
+                    first_name=form.cleaned_data['first_name'],
+                    last_name=form.cleaned_data['last_name']
+                )
+
+                department = Department.objects.get(id=form.cleaned_data['department_id'])
+
+                # generate employee id if not provided
+                emp_id = form.cleaned_data.get('employee_id') or generate_employee_id()
+
+                employee = Employee.objects.create(
+                    user=user,
+                    employee_id=emp_id,
+                    department=department,
+                    role=form.cleaned_data['role'],
+                    date_of_birth=form.cleaned_data.get('date_of_birth'),
+                    phone_number=form.cleaned_data.get('phone_number', ''),
+                    emergency_contact=form.cleaned_data.get('emergency_contact', ''),
+                    address=form.cleaned_data.get('address', ''),
+                    floor_number=form.cleaned_data.get('floor_number'),
+                    cabin_number=form.cleaned_data.get('cabin_number', ''),
+                    salary_base=form.cleaned_data.get('salary_base') or 0
+                )
+
             return JsonResponse({
                 'success': True,
                 'message': 'Employee created successfully',
                 'employee_id': employee.employee_id
             })
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
-    
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
     departments = Department.objects.all()
     context = {'departments': departments}
     return render(request, 'employees/employee_create.html', context)

@@ -162,7 +162,11 @@
 <script>
     document.getElementById('employeeForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
+        // clear previous errors
+        document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        document.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+
         const formData = {
             username: document.getElementById('username').value,
             email: document.getElementById('email').value,
@@ -180,22 +184,41 @@
             salary_base: document.getElementById('salary_base').value
         };
         
+        const csrftoken = (document.cookie.match(/(^|;)\s*csrftoken=([^;]+)/) || [])[2];
+
         fetch('{% url "employee_create" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': csrftoken
             },
             body: JSON.stringify(formData)
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Employee created successfully!');
+        .then(async response => {
+            const data = await response.json().catch(() => null);
+            if (response.ok && data && data.success) {
+                // success
                 window.location.href = '{% url "employee_list" %}';
-            } else {
-                alert('Error: ' + data.error);
+                return;
             }
+
+            // show validation errors if provided
+            if (data && data.errors) {
+                for (const [field, messages] of Object.entries(data.errors)) {
+                    const el = document.getElementById(field);
+                    if (el) {
+                        el.classList.add('is-invalid');
+                        const feedback = document.createElement('div');
+                        feedback.className = 'invalid-feedback';
+                        feedback.innerText = messages.join(' ');
+                        el.parentNode.appendChild(feedback);
+                    }
+                }
+                return;
+            }
+
+            // fallback error
+            alert((data && data.error) || 'An error occurred. Please try again.');
         })
         .catch(error => {
             console.error('Error:', error);

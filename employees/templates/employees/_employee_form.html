@@ -1,0 +1,213 @@
+<!-- employees/_employee_form.html - Form partial used in modal and standalone page -->
+<div class="mb-4">
+    <form id="employeeForm" method="POST">
+        {% csrf_token %}
+
+        <!-- User Information -->
+        <h5 class="text-primary mb-3">
+            <i class="fas fa-user"></i> User Account
+        </h5>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="col-md-6">
+                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="first_name" name="first_name" required>
+            </div>
+            <div class="col-md-6">
+                <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="last_name" name="last_name" required>
+            </div>
+        </div>
+
+        {% include 'employees/_password_field.html' %}
+
+        <hr class="my-4">
+
+        <!-- Employee Information -->
+        <h5 class="text-primary mb-3">
+            <i class="fas fa-id-card"></i> Employee Details
+        </h5>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="employee_id" class="form-label">Employee ID <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="employee_id" name="employee_id" placeholder="Auto-generated" disabled>
+                <div class="form-text">e.g., EMP0001</div>
+            </div>
+            <div class="col-md-6">
+                <label for="department_id" class="form-label">Department <span class="text-danger">*</span></label>
+                <select class="form-select" id="department_id" name="department_id" required>
+                    <option value="">Select Department</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
+                <select class="form-select" id="role" name="role" required>
+                    <option value="EMPLOYEE">Employee</option>
+                    <option value="TECHNICIAN">Technician</option>
+                    <option value="HR">HR Team</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="date_of_birth" class="form-label">Date of Birth</label>
+                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Contact Information -->
+        <h5 class="text-primary mb-3">
+            <i class="fas fa-address-book"></i> Contact Information
+        </h5>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="phone_number" class="form-label">Phone Number</label>
+                <input type="tel" class="form-control" id="phone_number" name="phone_number" placeholder="+94771234567">
+            </div>
+            <div class="col-md-6">
+                <label for="emergency_contact" class="form-label">Emergency Contact</label>
+                <input type="tel" class="form-control" id="emergency_contact" name="emergency_contact">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="address" class="form-label">Address</label>
+            <textarea class="form-control" id="address" name="address" rows="2"></textarea>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Work Location -->
+        <h5 class="text-primary mb-3">
+            <i class="fas fa-building"></i> Work Location
+        </h5>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="floor_number" class="form-label">Floor Number</label>
+                <input type="number" class="form-control" id="floor_number" name="floor_number" min="1">
+            </div>
+            <div class="col-md-4">
+                <label for="cabin_number" class="form-label">Cabin Number</label>
+                <input type="text" class="form-control" id="cabin_number" name="cabin_number">
+            </div>
+            <div class="col-md-4">
+                <label for="salary_base" class="form-label">Base Salary (Rs.)</label>
+                <input type="number" class="form-control" id="salary_base" name="salary_base" step="0.01" min="0" value="0">
+            </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Submit Button -->
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="{% url 'employee_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Create Employee
+            </button>
+        </div>
+    </form>
+</div>
+
+{% comment %} Inline JS handles CSRF, submission and validation display. This runs both when loaded standalone and when injected into a modal. {% endcomment %}
+<script>
+    (function(){
+        const form = document.getElementById('employeeForm');
+        if (!form) return;
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // clear previous errors
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            form.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+
+            const formData = {
+                username: form.querySelector('#username').value,
+                email: form.querySelector('#email').value,
+                first_name: form.querySelector('#first_name').value,
+                last_name: form.querySelector('#last_name').value,
+                password: form.querySelector('#password').value,
+                // employee_id is auto-generated server-side; send empty string if disabled
+                employee_id: (form.querySelector('#employee_id').disabled ? '' : form.querySelector('#employee_id').value),
+                department_id: form.querySelector('#department_id').value,
+                role: form.querySelector('#role').value,
+                date_of_birth: form.querySelector('#date_of_birth').value,
+                phone_number: form.querySelector('#phone_number').value,
+                address: form.querySelector('#address').value,
+                floor_number: form.querySelector('#floor_number').value,
+                cabin_number: form.querySelector('#cabin_number').value,
+                salary_base: form.querySelector('#salary_base').value
+            };
+
+            const csrftoken = (document.cookie.match(/(^|;)\s*csrftoken=([^;]+)/) || [])[2];
+
+            fetch('{% url "employee_create" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(async response => {
+                const data = await response.json().catch(() => null);
+                if (response.ok && data && data.success) {
+                    // if inside modal, close and refresh list; else navigate
+                    if (window.bootstrap && document.querySelector('#addEmployeeModal') &&
+                        document.querySelector('#addEmployeeModal').classList.contains('show')) {
+                        // try to hide modal
+                        const modalEl = document.getElementById('addEmployeeModal');
+                        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                        modal.hide();
+                    }
+                    // reload page to show new employee in list
+                    window.location.reload();
+                    return;
+                }
+
+                if (data && data.errors) {
+                    for (const [field, messages] of Object.entries(data.errors)) {
+                        const el = form.querySelector('#' + field);
+                        if (el) {
+                            el.classList.add('is-invalid');
+                            const feedback = document.createElement('div');
+                            feedback.className = 'invalid-feedback';
+                            feedback.innerText = messages.join(' ');
+                            el.parentNode.appendChild(feedback);
+                        }
+                    }
+                    return;
+                }
+
+                alert((data && data.error) || 'An error occurred. Please try again.');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    })();
+</script>
