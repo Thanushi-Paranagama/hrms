@@ -9,6 +9,10 @@ from datetime import datetime, timedelta
 from .models import WorkforceEvent
 from employees.models import Employee, Department
 import json
+from django.http import JsonResponse
+from django.urls import reverse
+from django.utils.dateparse import parse_datetime, parse_date
+from django.utils import timezone as dj_timezone
 
 @login_required
 def calendar_view(request):
@@ -27,16 +31,16 @@ def calendar_view(request):
     
     # Get events
     events = WorkforceEvent.objects.filter(
-        start_datetime__gte=start_date,
-        start_datetime__lte=end_date
-    ).prefetch_related('participants', 'department').select_related('created_by__user')
+        start_date__gte=start_date,
+        start_date__lte=end_date
+    ).prefetch_related('employees').select_related('created_by__user')
     
     # Filter by employee if not HR/Admin
     if hasattr(request.user, 'employee_profile'):
         if request.user.employee_profile.role not in ['HR', 'ADMIN']:
             employee = request.user.employee_profile
             events = events.filter(
-                Q(participants=employee) | Q(department=employee.department) | Q(created_by=employee)
+                Q(employees=employee) | Q(employees__department=employee.department) | Q(created_by=employee)
             ).distinct()
     
     context = {
@@ -46,51 +50,118 @@ def calendar_view(request):
     }
     return render(request, 'workforce_calendar/calendar.html', context)
 
+
+@login_required
+def events_json(request):
+    """Return events as JSON for FullCalendar (GET params: start, end)."""
+    try:
+        start_raw = request.GET.get('start')
+        end_raw = request.GET.get('end')
+
+        # parse start/end which may be date-only or datetime (ISO format)
+        start_dt = None
+        end_dt = None
+        if start_raw:
+            start_dt = parse_datetime(start_raw) or (parse_date(start_raw) and datetime.combine(parse_date(start_raw), datetime.min.time()))
+        if end_raw:
+            end_dt = parse_datetime(end_raw) or (parse_date(end_raw) and datetime.combine(parse_date(end_raw), datetime.max.time()))
+
+        # fallback to current month if parsing failed
+        if not start_dt or not end_dt:
+            start_dt = dj_timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_dt = (start_dt + timedelta(days=32)).replace(day=1) - timedelta(seconds=1)
+
+        # Ensure timezone-aware datetimes if USE_TZ is True
+        if dj_timezone.is_naive(start_dt):
+            start_dt = dj_timezone.make_aware(start_dt)
+        if dj_timezone.is_naive(end_dt):
+            end_dt = dj_timezone.make_aware(end_dt)
+
+        events_qs = WorkforceEvent.objects.filter(
+            # include events that intersect the requested window
+            start_date__lte=end_dt,
+            end_date__gte=start_dt
+        )
+
+        # restrict visibility for non-HR/Admin users
+        if hasattr(request.user, 'employee_profile') and request.user.employee_profile.role not in ['HR', 'ADMIN']:
+            emp = request.user.employee_profile
+            events_qs = events_qs.filter(
+                Q(employees=emp) | Q(employees__department=emp.department) | Q(created_by=emp)
+            ).distinct()
+
+        events = []
+        for ev in events_qs:
+            events.append({
+                'id': ev.id,
+                'title': ev.title,
+                'start': ev.start_date.isoformat(),
+                'end': ev.end_date.isoformat(),
+                'allDay': bool(ev.is_all_day),
+                'url': reverse('event_detail', args=[ev.id]),
+                'description': ev.description or '',
+                'location': ev.location or '',
+                'event_type': ev.event_type,
+            })
+
+        return JsonResponse(events, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
 @login_required
 def event_create(request):
     """Create a new calendar event"""
     if request.method == 'POST':
         try:
-            # Parse datetime
-            start_datetime = datetime.strptime(
+            # Parse datetime (form uses start_datetime/end_datetime names)
+            start_dt = datetime.strptime(
                 request.POST.get('start_datetime'), 
                 '%Y-%m-%dT%H:%M'
             )
-            end_datetime = datetime.strptime(
+            end_dt = datetime.strptime(
                 request.POST.get('end_datetime'), 
                 '%Y-%m-%dT%H:%M'
             )
             
             # Validate dates
-            if start_datetime >= end_datetime:
+            if start_dt >= end_dt:
                 messages.error(request, 'End time must be after start time')
                 return redirect('event_create')
             
-            # Create event
+            # Create event (model uses start_date/end_date and employees M2M)
+            # Some users (admin/service accounts) may not have an Employee profile; allow created_by to be null
+            creator = getattr(request.user, 'employee_profile', None)
             event = WorkforceEvent.objects.create(
                 title=request.POST.get('title'),
                 description=request.POST.get('description', ''),
                 event_type=request.POST.get('event_type'),
-                start_datetime=start_datetime,
-                end_datetime=end_datetime,
-                all_day=request.POST.get('all_day') == 'on',
+                start_date=start_dt,
+                end_date=end_dt,
+                is_all_day=request.POST.get('all_day') == 'on',
                 location=request.POST.get('location', ''),
-                created_by=request.user.employee_profile
+                created_by=creator
             )
-            
-            # Add department if specified
+
+            # If a department_id was provided, include all employees from that department
             department_id = request.POST.get('department_id')
+            participant_ids = set(request.POST.getlist('participants'))
             if department_id:
-                event.department = Department.objects.get(id=department_id)
-                event.save()
-            
-            # Add participants
-            participant_ids = request.POST.getlist('participants')
+                try:
+                    dept = Department.objects.get(id=department_id)
+                    dept_emp_ids = list(Employee.objects.filter(department=dept).values_list('id', flat=True))
+                    participant_ids.update(map(str, dept_emp_ids))
+                except Department.DoesNotExist:
+                    pass
+
+            # Add participants (employees)
             if participant_ids:
                 participants = Employee.objects.filter(id__in=participant_ids)
-                event.participants.set(participants)
+                event.employees.set(participants)
             
-            messages.success(request, 'Event created successfully')
+            if creator is None:
+                messages.success(request, 'Event created successfully (no employee profile found for creator)')
+            else:
+                messages.success(request, 'Event created successfully')
             return redirect('calendar_view')
             
         except Exception as e:
@@ -115,9 +186,9 @@ def event_detail(request, event_id):
     if hasattr(request.user, 'employee_profile'):
         employee = request.user.employee_profile
         if employee.role not in ['HR', 'ADMIN']:
-            # Check if employee is participant or in same department
-            if employee not in event.participants.all() and \
-               employee.department != event.department and \
+            # Check if employee is participant or in same department (via employees M2M) or creator
+            if not event.employees.filter(id=employee.id).exists() and \
+               not event.employees.filter(department=employee.department).exists() and \
                event.created_by != employee:
                 messages.error(request, 'You do not have access to this event')
                 return redirect('calendar_view')
@@ -143,40 +214,41 @@ def event_update(request, event_id):
             event.description = request.POST.get('description', '')
             event.event_type = request.POST.get('event_type')
             event.location = request.POST.get('location', '')
-            event.all_day = request.POST.get('all_day') == 'on'
-            
-            start_datetime = datetime.strptime(
+            event.is_all_day = request.POST.get('all_day') == 'on'
+
+            start_dt = datetime.strptime(
                 request.POST.get('start_datetime'), 
                 '%Y-%m-%dT%H:%M'
             )
-            end_datetime = datetime.strptime(
+            end_dt = datetime.strptime(
                 request.POST.get('end_datetime'), 
                 '%Y-%m-%dT%H:%M'
             )
             
-            if start_datetime >= end_datetime:
+            if start_dt >= end_dt:
                 messages.error(request, 'End time must be after start time')
                 return redirect('event_update', event_id=event_id)
-            
-            event.start_datetime = start_datetime
-            event.end_datetime = end_datetime
-            
-            # Update department
-            department_id = request.POST.get('department_id')
-            if department_id:
-                event.department = Department.objects.get(id=department_id)
-            else:
-                event.department = None
+            event.start_date = start_dt
+            event.end_date = end_dt
             
             event.save()
             
-            # Update participants
-            participant_ids = request.POST.getlist('participants')
+            # Update employees (participants)
+            participant_ids = set(request.POST.getlist('participants'))
+            department_id = request.POST.get('department_id')
+            if department_id:
+                try:
+                    dept = Department.objects.get(id=department_id)
+                    dept_emp_ids = list(Employee.objects.filter(department=dept).values_list('id', flat=True))
+                    participant_ids.update(map(str, dept_emp_ids))
+                except Department.DoesNotExist:
+                    pass
+
             if participant_ids:
                 participants = Employee.objects.filter(id__in=participant_ids)
-                event.participants.set(participants)
+                event.employees.set(participants)
             else:
-                event.participants.clear()
+                event.employees.clear()
             
             messages.success(request, 'Event updated successfully')
             return redirect('event_detail', event_id=event_id)
@@ -226,20 +298,20 @@ def check_schedule_conflict(request):
             end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
             
             employee = Employee.objects.get(employee_id=employee_id)
-            
-            # Check for events during requested period
+
+            # Check for events during requested period (events where employee is participant or employees in same dept)
             conflicts = WorkforceEvent.objects.filter(
-                Q(participants=employee) | Q(department=employee.department),
-                start_datetime__date__lte=end_date,
-                end_datetime__date__gte=start_date
+                Q(employees=employee) | Q(employees__department=employee.department),
+                start_date__date__lte=end_date,
+                end_date__date__gte=start_date
             ).select_related('created_by__user')
             
             has_conflict = conflicts.exists()
             conflict_list = [
                 {
                     'title': event.title,
-                    'start_date': event.start_datetime.date().isoformat(),
-                    'end_date': event.end_datetime.date().isoformat(),
+                    'start_date': event.start_date.date().isoformat(),
+                    'end_date': event.end_date.date().isoformat(),
                     'type': event.event_type,
                     'location': event.location
                 }
@@ -284,10 +356,10 @@ def my_calendar(request):
     
     # Get employee's events
     events = WorkforceEvent.objects.filter(
-        Q(participants=employee) | Q(department=employee.department) | Q(created_by=employee),
-        start_datetime__gte=start_date,
-        start_datetime__lte=end_date
-    ).distinct().order_by('start_datetime')
+        Q(employees=employee) | Q(employees__department=employee.department) | Q(created_by=employee),
+        start_date__gte=start_date,
+        start_date__lte=end_date
+    ).distinct().order_by('start_date')
     
     # Get employee's leave requests
     from leave_management.models import LeaveRequest

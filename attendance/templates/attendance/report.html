@@ -181,7 +181,7 @@
             <div class="col-md-5">
                 <label for="year" class="form-label">Year</label>
                 <select name="year" id="year" class="form-select">
-                    {% for y in "2023,2024,2025,2026"|split:"," %}
+                    {% for y in years %}
                         <option value="{{ y }}" {% if y|add:"0" == year %}selected{% endif %}>{{ y }}</option>
                     {% endfor %}
                 </select>

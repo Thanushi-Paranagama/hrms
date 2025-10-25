@@ -60,5 +60,5 @@ class WorkforceEventSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = WorkforceEvent
-        fields = ['id', 'title', 'description', 'event_type', 'start_datetime',
-                  'end_datetime', 'all_day', 'location', 'created_by_name']
+        fields = ['id', 'title', 'description', 'event_type', 'start_date',
+                  'end_date', 'is_all_day', 'location', 'created_by_name', 'employees']

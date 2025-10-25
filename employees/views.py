@@ -14,12 +14,53 @@ import json
 from django.db import transaction
 from .forms import EmployeeCreateForm
 from .utils import generate_employee_id
+from decimal import Decimal, InvalidOperation
+import logging
+from types import SimpleNamespace
+from django.db import connection
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
 def employee_list(request):
     """Display list of all active employees"""
-    employees = Employee.objects.select_related('user', 'department').filter(is_active=True)
+    try:
+        qs = Employee.objects.select_related('user', 'department').filter(is_active=True)
+        # materialize queryset and ensure salary_base is a valid Decimal
+        employees = list(qs)
+        for e in employees:
+            try:
+                if e.salary_base in (None, ''):
+                    e.salary_base = Decimal('0.00')
+                else:
+                    e.salary_base = Decimal(str(e.salary_base))
+            except (InvalidOperation, TypeError, ValueError):
+                e.salary_base = Decimal('0.00')
+    except InvalidOperation as exc:
+        # Occurs when DB contains malformed decimal values that sqlite3 converter cannot parse
+        logger.exception('Decimal conversion error when loading employees: %s', exc)
+        from django.contrib import messages as _messages
+        _messages.error(request, 'Some stored salary values are malformed. Showing a simplified list; please run data cleanup.')
+
+        # Fallback: fetch minimal safe data via raw SQL (avoids Django field converters)
+        employees = []
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT e.id, e.employee_id, u.first_name, u.last_name, u.email, e.phone_number, d.name as dept_name, e.role
+                FROM employees_employee e
+                LEFT JOIN auth_user u ON u.id = e.user_id
+                LEFT JOIN employees_department d ON d.id = e.department_id
+                WHERE e.is_active = 1
+            """)
+            rows = cursor.fetchall()
+            for r in rows:
+                # build lightweight object similar to Employee used in templates
+                user_ns = SimpleNamespace(first_name=r[2] or '', last_name=r[3] or '', email=r[4] or '',
+                                          get_full_name=lambda fn=r[2] or '', ln=r[3] or '': f"{fn} {ln}".strip())
+                dept_ns = SimpleNamespace(name=r[6]) if r[6] else None
+                emp_ns = SimpleNamespace(employee_id=r[1], user=user_ns, department=dept_ns, phone_number=r[5] or '', role=r[7])
+                employees.append(emp_ns)
     total_departments = Department.objects.count()
     departments = Department.objects.all()
     context = {
@@ -32,7 +73,68 @@ def employee_list(request):
 @login_required
 def employee_detail(request, employee_id):
     """Display detailed information about an employee"""
-    employee = get_object_or_404(Employee, employee_id=employee_id)
+    try:
+        employee = get_object_or_404(Employee, employee_id=employee_id)
+    except InvalidOperation as exc:
+        # Handle malformed Decimal values in the DB that sqlite3 converter chokes on
+        logger.exception('Decimal conversion error when loading employee %s: %s', employee_id, exc)
+        from django.contrib import messages as _messages
+        _messages.error(request, 'Some numeric fields for this employee are malformed. Showing a simplified view; please run data cleanup.')
+
+        # Fallback: fetch minimal safe data via raw SQL (avoids Django field converters)
+        with connection.cursor() as cursor:
+            cursor.execute(r"""
+                SELECT e.id, e.employee_id, e.phone_number, e.role, e.date_of_birth, e.emergency_contact,
+                       e.address, e.floor_number, e.cabin_number, e.salary_base,
+                       e.face_encoding, e.created_at, e.updated_at,
+                       u.id as user_id, u.username, u.first_name, u.last_name, u.email,
+                       d.name as dept_name
+                FROM employees_employee e
+                LEFT JOIN auth_user u ON u.id = e.user_id
+                LEFT JOIN employees_department d ON d.id = e.department_id
+                WHERE e.employee_id = %s
+            """, [employee_id])
+            row = cursor.fetchone()
+
+        if not row:
+            # If nothing found, raise 404 as usual
+            from django.http import Http404
+            raise Http404('Employee not found')
+
+        # Build lightweight namespaces to mimic model attributes used by templates
+        (eid, empid, phone, role, dob, emergency, address, floor, cabin, salary_base,
+         face_encoding, created_at, updated_at, user_id, username, first_name, last_name, email, dept_name) = row
+
+        def _get_full_name(fn=first_name or '', ln=last_name or ''):
+            return f"{(fn or '').strip()} {(ln or '').strip()}".strip()
+
+        user_ns = SimpleNamespace(id=user_id, username=username or '', first_name=first_name or '', last_name=last_name or '', email=email or '', get_full_name=_get_full_name)
+        dept_ns = SimpleNamespace(name=dept_name) if dept_name else None
+        # coerce salary safely
+        try:
+            salary_val = Decimal(str(salary_base)) if salary_base not in (None, '') else Decimal('0.00')
+        except (InvalidOperation, TypeError, ValueError):
+            salary_val = Decimal('0.00')
+
+        employee = SimpleNamespace(
+            id=eid,
+            employee_id=empid,
+            user=user_ns,
+            phone_number=phone or '',
+            role=role,
+            date_of_birth=dob,
+            emergency_contact=emergency or '',
+            address=address or '',
+            floor_number=floor,
+            cabin_number=cabin or '',
+            salary_base=salary_val,
+            face_encoding=face_encoding,
+            face_image=None,
+            created_at=created_at,
+            updated_at=updated_at,
+            department=dept_ns
+        )
+
     context = {'employee': employee}
     return render(request, 'employees/employee_detail.html', context)
 
@@ -71,6 +173,16 @@ def employee_create(request):
                 # generate employee id if not provided
                 emp_id = form.cleaned_data.get('employee_id') or generate_employee_id()
 
+                # prepare salary value safely
+                salary_val = form.cleaned_data.get('salary_base')
+                try:
+                    if salary_val in (None, ''):
+                        salary_val = Decimal('0.00')
+                    else:
+                        salary_val = Decimal(str(salary_val))
+                except (InvalidOperation, TypeError, ValueError):
+                    salary_val = Decimal('0.00')
+
                 employee = Employee.objects.create(
                     user=user,
                     employee_id=emp_id,
@@ -82,7 +194,7 @@ def employee_create(request):
                     address=form.cleaned_data.get('address', ''),
                     floor_number=form.cleaned_data.get('floor_number'),
                     cabin_number=form.cleaned_data.get('cabin_number', ''),
-                    salary_base=form.cleaned_data.get('salary_base') or 0
+                    salary_base=salary_val
                 )
 
             return JsonResponse({
@@ -126,7 +238,14 @@ def employee_update(request, employee_id):
         if 'cabin_number' in data:
             employee.cabin_number = data['cabin_number']
         if 'salary_base' in data:
-            employee.salary_base = data['salary_base']
+            # coerce salary to Decimal safely
+            try:
+                if data['salary_base'] in (None, ''):
+                    employee.salary_base = Decimal('0.00')
+                else:
+                    employee.salary_base = Decimal(str(data['salary_base']))
+            except (InvalidOperation, TypeError, ValueError):
+                return JsonResponse({'success': False, 'error': 'Invalid salary value'}, status=400)
         
         employee.save()
         

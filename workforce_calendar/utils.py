@@ -4,19 +4,19 @@ from datetime import datetime, timedelta
 from django.db.models import Q
 
 
-def check_event_conflicts(employee, start_datetime, end_datetime, exclude_event_id=None):
+def check_event_conflicts(employee, start_dt, end_dt, exclude_event_id=None):
     """
     Check if employee has conflicting events in the given time range
     
     Returns: (has_conflict: bool, conflicts: list)
     """
     from workforce_calendar.models import WorkforceEvent
-    
-    # Query for overlapping events
+
+    # Query for overlapping events (employee participates or employees in same department)
     conflicts_query = WorkforceEvent.objects.filter(
-        Q(participants=employee) | Q(department=employee.department),
-        start_datetime__lt=end_datetime,
-        end_datetime__gt=start_datetime
+        Q(employees=employee) | Q(employees__department=employee.department),
+        start_date__lt=end_dt,
+        end_date__gt=start_dt
     )
     
     # Exclude specific event if updating
@@ -47,9 +47,9 @@ def check_leave_conflicts(employee, start_date, end_date):
     
     # Check for important events
     important_events = WorkforceEvent.objects.filter(
-        Q(participants=employee) | Q(department=employee.department),
-        start_datetime__date__lte=end_date,
-        end_datetime__date__gte=start_date,
+        Q(employees=employee) | Q(employees__department=employee.department),
+        start_date__date__lte=end_date,
+        end_date__date__gte=start_date,
         event_type__in=['MEETING', 'DEADLINE', 'TRAINING']
     )
     
@@ -71,9 +71,9 @@ def get_upcoming_events(employee, days=7):
     end_date = start_date + timedelta(days=days)
     
     events = WorkforceEvent.objects.filter(
-        Q(participants=employee) | Q(department=employee.department) | Q(created_by=employee),
-        start_datetime__gte=start_date,
-        start_datetime__lte=end_date
-    ).distinct().order_by('start_datetime')
+        Q(employees=employee) | Q(employees__department=employee.department) | Q(created_by=employee),
+        start_date__gte=start_date,
+        start_date__lte=end_date
+    ).distinct().order_by('start_date')
     
     return events

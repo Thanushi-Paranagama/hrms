@@ -86,8 +86,14 @@
 
 {% block extra_css %}
 <style>
+    /* Reduced calendar size for tighter UI */
     #calendar {
-        min-height: 500px;
+        min-height: 420px;
+        font-size: 0.92rem; /* slightly smaller text */
+    }
+    /* Tighter paddings inside calendar cells */
+    .fc .fc-daygrid-day-frame, .fc .fc-daygrid-day-top {
+        padding: 4px 6px;
     }
     .badge.bg-meeting { background-color: #0d6efd !important; }
     .badge.bg-deadline { background-color: #dc3545 !important; }
@@ -98,17 +104,41 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- FullCalendar integration -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
 <script>
-    // Simple calendar placeholder - can integrate FullCalendar.js later
     document.addEventListener('DOMContentLoaded', function() {
         const calendarEl = document.getElementById('calendar');
-        calendarEl.innerHTML = `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                Calendar visualization can be enhanced with FullCalendar.js or similar library.
-                <br>For now, view events in the list below.
-            </div>
-        `;
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            // reduce overall calendar vertical size for a compact display
+            contentHeight: 420,
+            aspectRatio: 1.2,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: {
+                url: '{% url "calendar_events_json" %}',
+                method: 'GET'
+            },
+            eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+            eventClick: function(info) {
+                // let FullCalendar handle navigation if url exists
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault(); // prevent browser from following the link immediately
+                }
+            },
+            loading: function(isLoading) {
+                // optional: show a small loader
+            }
+        });
+
+        calendar.render();
     });
 </script>
 {% endblock %}

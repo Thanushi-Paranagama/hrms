@@ -78,7 +78,10 @@ def logout_api(request):
 def upload_face_image(request):
     """Upload employee face image for recognition"""
     try:
-        employee = request.user.employee_profile
+        try:
+            employee = request.user.employee_profile
+        except Exception:
+            return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
         face_image = request.FILES.get('face_image')
         
         if not face_image:
@@ -115,7 +118,10 @@ def upload_face_image(request):
 def mark_attendance_with_face(request):
     """Mark attendance with face verification"""
     try:
-        employee = request.user.employee_profile
+        try:
+            employee = request.user.employee_profile
+        except Exception:
+            return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
         today = timezone.now().date()
         current_time = timezone.now().time()
         
@@ -175,7 +181,10 @@ def mark_attendance_with_face(request):
 def mark_attendance_api(request):
     """Mark attendance via mobile app"""
     try:
-        employee = request.user.employee_profile
+        try:
+            employee = request.user.employee_profile
+        except Exception:
+            return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
         today = timezone.now().date()
         current_time = timezone.now().time()
         
@@ -215,7 +224,10 @@ def mark_attendance_api(request):
 @permission_classes([IsAuthenticated])
 def my_attendance_api(request):
     """Get my attendance records"""
-    employee = request.user.employee_profile
+    try:
+        employee = request.user.employee_profile
+    except Exception:
+        return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
     month = request.GET.get('month', timezone.now().month)
     year = request.GET.get('year', timezone.now().year)
     
@@ -237,7 +249,10 @@ def my_attendance_api(request):
 @permission_classes([IsAuthenticated])
 def my_leaves_api(request):
     """Get my leave requests"""
-    employee = request.user.employee_profile
+    try:
+        employee = request.user.employee_profile
+    except Exception:
+        return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
     leaves = LeaveRequest.objects.filter(employee=employee).order_by('-created_at')
     serializer = LeaveRequestSerializer(leaves, many=True)
     return Response({
@@ -251,7 +266,10 @@ def my_leaves_api(request):
 def create_leave_api(request):
     """Create leave request"""
     try:
-        employee = request.user.employee_profile
+        try:
+            employee = request.user.employee_profile
+        except Exception:
+            return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
         leave_type = LeaveType.objects.get(id=request.data.get('leave_type_id'))
         
         start_date = datetime.strptime(request.data.get('start_date'), '%Y-%m-%d').date()
@@ -297,7 +315,10 @@ def leave_types_api(request):
 @permission_classes([IsAuthenticated])
 def my_salary_api(request):
     """Get my salary records"""
-    employee = request.user.employee_profile
+    try:
+        employee = request.user.employee_profile
+    except Exception:
+        return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
     month = request.GET.get('month', timezone.now().month)
     year = request.GET.get('year', timezone.now().year)
     
@@ -325,22 +346,24 @@ def my_salary_api(request):
 def my_calendar_api(request):
     """Get my calendar events"""
     from django.db.models import Q
-    
-    employee = request.user.employee_profile
+    try:
+        employee = request.user.employee_profile
+    except Exception:
+        return Response({'success': False, 'message': 'Employee profile not found'}, status=400)
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     
     events = WorkforceEvent.objects.filter(
-        Q(participants=employee) | Q(department=employee.department) | Q(created_by=employee)
+        Q(employees=employee) | Q(employees__department=employee.department) | Q(created_by=employee)
     )
     
     if start_date and end_date:
         events = events.filter(
-            start_datetime__gte=start_date,
-            end_datetime__lte=end_date
+            start_date__gte=start_date,
+            end_date__lte=end_date
         )
     
-    events = events.distinct().order_by('start_datetime')
+    events = events.distinct().order_by('start_date')
     serializer = WorkforceEventSerializer(events, many=True)
     
     return Response({

@@ -127,14 +127,15 @@ def salary_report(request, employee_id):
     """Generate salary report for a specific employee"""
     employee = get_object_or_404(Employee, employee_id=employee_id)
     
-    # Check permission: employees can only view their own reports
-    if not hasattr(request.user, 'employee_profile'):
+    # Check permission: employees can only view their own reports.
+    # Allow HR/Admin, staff or superuser as well.
+    try:
+        emp_profile = request.user.employee_profile
+    except Exception:
+        emp_profile = None
+
+    if not (request.user.is_staff or request.user.is_superuser or (emp_profile and emp_profile.role in ['HR', 'ADMIN']) or (emp_profile and emp_profile == employee)):
         messages.error(request, 'Access denied')
-        return redirect('salary_dashboard')
-    
-    if request.user.employee_profile.role not in ['HR', 'ADMIN'] and \
-       request.user.employee_profile != employee:
-        messages.error(request, 'You can only view your own salary report')
         return redirect('salary_dashboard')
     
     month = int(request.GET.get('month', timezone.now().month))
@@ -169,8 +170,13 @@ def salary_report(request, employee_id):
 @login_required
 def salary_mark_paid(request, salary_id):
     """Mark a salary record as paid (HR/Admin only)"""
-    if not hasattr(request.user, 'employee_profile') or \
-       request.user.employee_profile.role not in ['HR', 'ADMIN']:
+    # Allow HR/Admin roles or Django staff/superuser accounts to mark salaries as paid.
+    try:
+        emp = request.user.employee_profile
+    except Exception:
+        emp = None
+
+    if not (request.user.is_staff or request.user.is_superuser or (emp and emp.role in ['HR', 'ADMIN'])):
         messages.error(request, 'Access denied')
         return redirect('salary_dashboard')
     

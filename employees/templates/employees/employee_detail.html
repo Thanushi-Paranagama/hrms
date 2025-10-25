@@ -39,15 +39,20 @@
                 {% endif %}
                 
                 <div class="d-grid gap-2 mt-4">
-                    <a href="{% url 'attendance_report' employee.employee_id %}" class="btn btn-outline-primary">
-                        <i class="fas fa-clock"></i> View Attendance
+                    <!-- Full-width pill-style buttons to match design -->
+                    <a href="{% url 'attendance_report' employee.employee_id %}" 
+                       class="btn btn-outline-primary btn-lg w-100 rounded-3 d-flex align-items-center justify-content-center" 
+                       style="border-width:2px;">
+                        <i class="fas fa-clock me-2"></i>
+                        <span class="fw-semibold">View Attendance</span>
                     </a>
-                    <a href="{% url 'salary_report' employee.employee_id %}" class="btn btn-outline-success">
-                        <i class="fas fa-money-bill"></i> Salary Report
+
+                    <a href="{% url 'salary_report' employee.employee_id %}" 
+                       class="btn btn-outline-success btn-lg w-100 rounded-3 d-flex align-items-center justify-content-center" 
+                       style="border-width:2px;">
+                        <i class="fas fa-money-bill me-2"></i>
+                        <span class="fw-semibold">Salary Report</span>
                     </a>
-                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editModal">
-                        <i class="fas fa-edit"></i> Edit Profile
-                    </button>
                 </div>
             </div>
         </div>
@@ -86,25 +91,29 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="small text-muted">First Name</label>
-                        <p class="mb-0"><strong>{{ employee.user.first_name }}</strong></p>
-                    </div>
+                            <label class="small text-muted">First Name</label>
+                            <p class="mb-0"><strong>
+                                <span class="editable" data-field="first_name">{{ employee.user.first_name }}</span>
+                            </strong></p>
+                        </div>
                     <div class="col-md-6 mb-3">
                         <label class="small text-muted">Last Name</label>
-                        <p class="mb-0"><strong>{{ employee.user.last_name }}</strong></p>
+                        <p class="mb-0"><strong>
+                            <span class="editable" data-field="last_name">{{ employee.user.last_name }}</span>
+                        </strong></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="small text-muted">Email</label>
                         <p class="mb-0">
                             <i class="fas fa-envelope text-primary me-2"></i>
-                            {{ employee.user.email }}
+                            <span class="editable" data-field="email">{{ employee.user.email }}</span>
                         </p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="small text-muted">Phone Number</label>
                         <p class="mb-0">
                             <i class="fas fa-phone text-success me-2"></i>
-                            {{ employee.phone_number|default:"Not provided" }}
+                            <span class="editable" data-field="phone_number">{{ employee.phone_number|default:"" }}</span>
                         </p>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -118,14 +127,14 @@
                         <label class="small text-muted">Emergency Contact</label>
                         <p class="mb-0">
                             <i class="fas fa-phone-square text-danger me-2"></i>
-                            {{ employee.emergency_contact|default:"Not provided" }}
+                            <span class="editable" data-field="emergency_contact">{{ employee.emergency_contact|default:"" }}</span>
                         </p>
                     </div>
                     <div class="col-12">
                         <label class="small text-muted">Address</label>
                         <p class="mb-0">
                             <i class="fas fa-map-marker-alt text-warning me-2"></i>
-                            {{ employee.address|default:"Not provided" }}
+                            <span class="editable" data-field="address">{{ employee.address|default:"" }}</span>
                         </p>
                     </div>
                 </div>
@@ -159,16 +168,16 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="small text-muted">Floor Number</label>
-                        <p class="mb-0">{{ employee.floor_number|default:"Not assigned" }}</p>
+                        <p class="mb-0"><span class="editable" data-field="floor_number">{{ employee.floor_number|default:"" }}</span></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="small text-muted">Cabin Number</label>
-                        <p class="mb-0">{{ employee.cabin_number|default:"Not assigned" }}</p>
+                        <p class="mb-0"><span class="editable" data-field="cabin_number">{{ employee.cabin_number|default:"" }}</span></p>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="small text-muted">Base Salary</label>
                         <p class="mb-0">
-                            <strong class="text-success">Rs. {{ employee.salary_base|floatformat:2 }}</strong>
+                            <strong class="text-success">Rs. <span class="editable" data-field="salary_base">{{ employee.salary_base }}</span></strong>
                         </p>
                     </div>
                 </div>
@@ -214,18 +223,80 @@
     </div>
 </div>
 
-<!-- Edit Modal (placeholder) -->
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Employee</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-center text-muted">Edit functionality will be implemented via API</p>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Edit modal removed; inline editing is available directly on fields -->
+{% endblock %}
+{% block extra_js %}
+<script>
+// Inline edit + autosave for employee profile
+(function(){
+    const employeeId = '{{ employee.employee_id }}';
+    const csrf = (document.cookie.match(/(^|;)\s*csrftoken=([^;]+)/) || [])[2];
+    const editableEls = document.querySelectorAll('.editable');
+
+    function debounce(fn, wait){
+        let t; return function(){
+            const args = arguments; clearTimeout(t); t = setTimeout(()=>fn.apply(this,args), wait);
+        }
+    }
+
+    async function saveField(field, value){
+        const payload = {};
+        payload[field] = value;
+        try{
+            const res = await fetch(`/employees/update/${employeeId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success){
+                console.error('Save failed', data);
+                // show temporary error UI
+                const orig = document.querySelector(`[data-field="${field}"]`);
+                if (orig){
+                    orig.classList.add('border','border-danger');
+                    setTimeout(()=>orig.classList.remove('border','border-danger'),3000);
+                }
+            }
+        }catch(err){
+            console.error('Save error',err);
+        }
+    }
+
+    editableEls.forEach(el => {
+        el.setAttribute('contenteditable','true');
+        el.classList.add('editable-ui');
+        const field = el.dataset.field;
+        const handler = debounce(function(){
+            let val = el.innerText.trim();
+            // numeric fields
+            if (['floor_number','salary_base'].includes(field) && val==='') val = null;
+            saveField(field, val);
+        }, 800);
+
+        el.addEventListener('input', handler);
+        el.addEventListener('blur', handler);
+    });
+
+    // View Attendance button: check target before navigating
+    const attendanceBtn = document.querySelector('a[href*="attendance/report"]');
+    if (attendanceBtn){
+        attendanceBtn.addEventListener('click', async function(e){
+            e.preventDefault();
+            const href = this.getAttribute('href');
+            try{
+                const resp = await fetch(href, { method: 'HEAD' });
+                if (resp.ok) window.location = href;
+                else alert('Attendance report not available for this employee');
+            }catch(err){
+                console.error('Error checking attendance report', err);
+                alert('Could not load attendance. Please try again later.');
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}

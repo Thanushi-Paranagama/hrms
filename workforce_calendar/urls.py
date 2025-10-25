@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path('', views.calendar_view, name='calendar_view'),
+    path('events.json', views.events_json, name='calendar_events_json'),
     path('my-calendar/', views.my_calendar, name='my_calendar'),
     path('event/create/', views.event_create, name='event_create'),
     path('event/<int:event_id>/', views.event_detail, name='event_detail'),

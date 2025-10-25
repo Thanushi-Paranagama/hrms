@@ -100,7 +100,7 @@
                             {% endif %}
                             <tr class="table-light">
                                 <td><strong>Gross Salary</strong></td>
-                                <td class="text-end"><strong>Rs. {% widthratio salary_record.base_salary 1 1|add:salary_record.bonuses|floatformat:2 %}</strong></td>
+                                <td class="text-end"><strong>Rs. {{ salary_record.base_salary|add:salary_record.bonuses|floatformat:2 }}</strong></td>
                             </tr>
                         </table>
                     </div>

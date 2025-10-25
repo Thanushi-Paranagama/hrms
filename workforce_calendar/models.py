@@ -4,6 +4,7 @@
 
 from django.db import models
 
+
 class WorkforceEvent(models.Model):
     EVENT_TYPE_CHOICES = [
         ('MEETING', 'Meeting'),
@@ -12,20 +13,21 @@ class WorkforceEvent(models.Model):
         ('HOLIDAY', 'Holiday'),
         ('TRAINING', 'Training'),
     ]
-    
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES)
-    
+
+    # Use the datetime field names from the migration and views
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     is_all_day = models.BooleanField(default=False)
-    
-    # Participants
+
+    # Participants (renamed to employees in migrations)
     employees = models.ManyToManyField('employees.Employee', blank=True, related_name='calendar_events')
-    
+
     location = models.CharField(max_length=200, blank=True)
-    
+
     created_by = models.ForeignKey('employees.Employee', on_delete=models.SET_NULL, null=True, related_name='created_events')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -35,3 +37,5 @@ class WorkforceEvent(models.Model):
 
     class Meta:
         ordering = ['start_date']
+
+    # keep start_date/end_date fields (used throughout app)

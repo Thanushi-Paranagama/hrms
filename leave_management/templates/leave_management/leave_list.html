@@ -16,29 +16,25 @@
     </a>
 </div>
 
-<!-- Filter Tabs -->
-<ul class="nav nav-pills mb-4">
-    <li class="nav-item">
-        <a class="nav-link active" href="?">
-            <i class="fas fa-list"></i> All Requests
+<!-- Filter Buttons (pills style) -->
+<div class="mb-4">
+    <div class="btn-group" role="group" aria-label="Leave filters">
+        {% with current_status=request.GET.status|default_if_none:'' %}
+        <a href="?" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            <i class="fas fa-list me-1"></i> All Requests
         </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="?status=PENDING">
-            <i class="fas fa-clock"></i> Pending
+        <a href="?status=PENDING" class="btn btn-sm {% if current_status == 'PENDING' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            <i class="fas fa-clock me-1"></i> Pending
         </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="?status=APPROVED">
-            <i class="fas fa-check"></i> Approved
+        <a href="?status=APPROVED" class="btn btn-sm {% if current_status == 'APPROVED' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            <i class="fas fa-check me-1"></i> Approved
         </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="?status=REJECTED">
-            <i class="fas fa-times"></i> Rejected
+        <a href="?status=REJECTED" class="btn btn-sm {% if current_status == 'REJECTED' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            <i class="fas fa-times me-1"></i> Rejected
         </a>
-    </li>
-</ul>
+        {% endwith %}
+    </div>
+</div>
 
 <!-- Leave Requests List -->
 <div class="card">
@@ -111,7 +107,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if user.employee_profile.role == 'HR' or user.employee_profile.role == 'ADMIN' %}
+                            {% if user_is_hr %}
                                 {% if leave.status == 'PENDING' %}
                                     <a href="{% url 'leave_request_approve' leave.id %}" 
                                        class="btn btn-sm btn-outline-success" 
@@ -121,7 +117,7 @@
                                 {% endif %}
                             {% endif %}
                             
-                            {% if leave.employee == user.employee_profile and leave.status == 'PENDING' %}
+                            {% if user_has_profile and leave.employee == user_emp and leave.status == 'PENDING' %}
                                 <form method="POST" action="{% url 'leave_request_cancel' leave.id %}" 
                                       style="display: inline;" 
                                       onsubmit="return confirm('Are you sure you want to cancel this request?');">

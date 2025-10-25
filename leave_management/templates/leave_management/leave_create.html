@@ -19,6 +19,15 @@
             <div class="card-body">
                 <form method="POST" action="{% url 'leave_request_create' %}">
                     {% csrf_token %}
+                    {% if is_staff_user %}
+                    <div class="mb-3">
+                        <label for="employee_search" class="form-label">Employee (by Employee ID) <span class="text-danger">*</span></label>
+                        <input type="text" id="employee_search" class="form-control" placeholder="Type employee id or name to search...">
+                        <input type="hidden" id="employee_pk" name="employee_pk" value="">
+                        <div class="list-group mt-1" id="employeeResults" style="max-height:200px; overflow:auto; display:none;"></div>
+                        <div class="form-text">Select the employee you want to request leave for.</div>
+                    </div>
+                    {% endif %}
                     
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
@@ -174,5 +183,70 @@
             return false;
         }
     });
+
+    // Employee realtime search (staff/admin)
+    {% if is_staff_user %}
+    (function(){
+        const input = document.getElementById('employee_search');
+        const resultsBox = document.getElementById('employeeResults');
+        const hiddenPk = document.getElementById('employee_pk');
+        let timer = null;
+
+        function clearResults(){
+            resultsBox.innerHTML = '';
+            resultsBox.style.display = 'none';
+            hiddenPk.value = '';
+        }
+
+        function render(results){
+            resultsBox.innerHTML = '';
+            if(!results.length){
+                clearResults();
+                return;
+            }
+            results.forEach(r => {
+                const el = document.createElement('button');
+                el.type = 'button';
+                el.className = 'list-group-item list-group-item-action';
+                el.textContent = `${r.employee_id} — ${r.name}`;
+                el.addEventListener('click', function(){
+                    input.value = `${r.employee_id} — ${r.name}`;
+                    hiddenPk.value = r.pk;
+                    resultsBox.style.display = 'none';
+                });
+                resultsBox.appendChild(el);
+            });
+            resultsBox.style.display = 'block';
+        }
+
+        function search(q){
+            if(!q || q.length < 2){
+                clearResults();
+                return;
+            }
+            fetch(`{% url 'employee_search' %}?q=${encodeURIComponent(q)}`)
+                .then(r => r.json())
+                .then(data => {
+                    render(data.results || []);
+                })
+                .catch(()=> clearResults());
+        }
+
+        input && input.addEventListener('input', function(e){
+            const v = this.value.trim();
+            // reset selected pk when typing
+            hiddenPk.value = '';
+            if(timer) clearTimeout(timer);
+            timer = setTimeout(()=> search(v), 250);
+        });
+
+        // click outside to close
+        document.addEventListener('click', function(ev){
+            if(!ev.target.closest('#employee_search') && !ev.target.closest('#employeeResults')){
+                resultsBox.style.display = 'none';
+            }
+        });
+    })();
+    {% endif %}
 </script>
 {% endblock %}
