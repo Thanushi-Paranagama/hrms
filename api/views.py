@@ -183,8 +183,8 @@ def mark_attendance_with_face(request):
 
         # Parse and validate coordinates
         try:
-            latitude = float(request.POST.get('latitude', '6.82114889822254'))
-            longitude = float(request.POST.get('longitude', '79.8806658352055'))
+            latitude = float(request.POST.get('latitude', '6.906414059904306'))
+            longitude = float(request.POST.get('longitude', '79.87083400822313'))
             if not (5.0 <= latitude <= 10.0 and 79.0 <= longitude <= 82.0):
                 return Response({'success': False, 'message': 'Location coordinates must be within Sri Lanka'}, status=400)
         except (ValueError, TypeError):
