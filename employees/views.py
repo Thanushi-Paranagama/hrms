@@ -211,6 +211,48 @@ def employee_create(request):
 
 @login_required
 @require_http_methods(["POST"])
+def upload_face_image(request, employee_id):
+    """Upload and process face image for recognition"""
+    try:
+        employee = get_object_or_404(Employee, employee_id=employee_id)
+        
+        if 'face_image' not in request.FILES:
+            return JsonResponse({
+                'success': False,
+                'error': 'No image file provided'
+            }, status=400)
+            
+        image = request.FILES['face_image']
+        employee.face_image = image
+        employee.save()
+        
+        # Generate face encoding
+        from .face_recognition_utils import encode_face
+        face_encoding = encode_face(employee.face_image.path)
+        
+        if face_encoding is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'No face detected in the image'
+            }, status=400)
+            
+        # Store the encoding
+        employee.face_encoding = json.dumps(face_encoding)
+        employee.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Face image uploaded and processed successfully'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+@login_required
+@require_http_methods(["POST"])
 def employee_update(request, employee_id):
     """Update employee information"""
     try:

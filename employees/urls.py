@@ -7,4 +7,5 @@ urlpatterns = [
     path('create/', views.employee_create, name='employee_create'),
     path('update/<str:employee_id>/', views.employee_update, name='employee_update'),
     path('<str:employee_id>/', views.employee_detail, name='employee_detail'),
+    path('face-setup/<str:employee_id>/', views.upload_face_image, name='upload_face_image'),
 ]

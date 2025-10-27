@@ -21,11 +21,19 @@ class EmployeeSerializer(serializers.ModelSerializer):
 class AttendanceSerializer(serializers.ModelSerializer):
     employee_id = serializers.CharField(source='employee.employee_id', read_only=True)
     employee_name = serializers.CharField(source='employee.user.get_full_name', read_only=True)
+    location = serializers.SerializerMethodField()
     
     class Meta:
         model = Attendance
         fields = ['id', 'employee', 'employee_id', 'employee_name', 'date', 
-                  'check_in', 'check_out', 'status', 'face_verified', 'notes']
+                  'check_in', 'check_out', 'status', 'face_verified', 'notes',
+                  'latitude', 'longitude', 'location']
+    
+    def get_location(self, obj):
+        """Return a formatted location string if coordinates exist"""
+        if obj.latitude and obj.longitude:
+            return f"{obj.latitude:.6f}, {obj.longitude:.6f}"
+        return None
 
 
 class LeaveTypeSerializer(serializers.ModelSerializer):
@@ -56,9 +64,17 @@ class SalaryRecordSerializer(serializers.ModelSerializer):
 
 
 class WorkforceEventSerializer(serializers.ModelSerializer):
-    created_by_name = serializers.CharField(source='created_by.user.get_full_name', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    start_datetime = serializers.DateTimeField(source='start_date', format='%Y-%m-%dT%H:%M:%S')
+    end_datetime = serializers.DateTimeField(source='end_date', format='%Y-%m-%dT%H:%M:%S')
+    all_day = serializers.BooleanField(source='is_all_day')
     
     class Meta:
         model = WorkforceEvent
-        fields = ['id', 'title', 'description', 'event_type', 'start_date',
-                  'end_date', 'is_all_day', 'location', 'created_by_name', 'employees']
+        fields = ['id', 'title', 'description', 'event_type', 'start_datetime',
+                  'end_datetime', 'all_day', 'location', 'created_by_name']
+    
+    def get_created_by_name(self, obj):
+        if obj.created_by and obj.created_by.user:
+            return obj.created_by.user.get_full_name()
+        return "Unknown"
